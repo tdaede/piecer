@@ -128,6 +128,12 @@ fn main() {
         "download" => {
             piece.download(&args[2]);
         }
+        "dump" => {
+            let mut file = File::create("dump.img").expect("Could not create dump.img");
+            let mut dump = [0; 2097152];
+            piece.get_memory(0xc00000, 2097142, &mut dump);
+            file.write_all(&dump).unwrap();
+        }
         "backup" => {
             for dirent in piece.ls() {
                 println!("{}", dirent.name);
