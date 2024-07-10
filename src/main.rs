@@ -1,7 +1,7 @@
+use clap::{Parser, Subcommand};
 use rusb::*;
 use std::time::Duration;
 use std::str;
-use std::env;
 use std::fs::File;
 use std::io::Write;
 
@@ -16,6 +16,30 @@ struct DirEnt {
 struct Piece {
     device_handle: DeviceHandle<GlobalContext>,
     pffs_top: u32
+}
+
+
+#[derive(Parser)]
+#[command()]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// List all files on device
+    Ls,
+    /// Display a screenshot in terminal
+    Screenshot,
+    /// Download a single file to current directory
+    Download {
+        file: String,
+    },
+    /// Dump flash to dump.img
+    Dump,
+    /// Download all files to current directory
+    Backup,
 }
 
 impl Piece {
@@ -115,34 +139,31 @@ impl Piece {
 }
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
+    let cli = Cli::parse();
     let mut piece = Piece::new();
-    match args[1].as_str() {
-        "ls" => {
+    match cli.command {
+        Commands::Ls => {
             for dirent in piece.ls() {
                 println!("{}\t{}", dirent.name, dirent.len);
             }
         }
-        "screenshot" => {
+        Commands::Screenshot => {
             piece.get_screenshot();
         }
-        "download" => {
-            piece.download(&args[2]);
+        Commands::Download {file} => {
+            piece.download(file.as_str());
         }
-        "dump" => {
+        Commands::Dump => {
             let mut file = File::create("dump.img").expect("Could not create dump.img");
             let mut dump = [0; 2097152];
             piece.get_memory(0xc00000, 2097142, &mut dump);
             file.write_all(&dump).unwrap();
         }
-        "backup" => {
+        Commands::Backup => {
             for dirent in piece.ls() {
                 println!("{}", dirent.name);
                 piece.download(&dirent.name);
             }
-        }
-        _ => {
-            eprintln!("No command specified.");
         }
     }
 }
