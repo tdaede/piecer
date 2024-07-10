@@ -21,6 +21,7 @@ struct Piece {
 impl Piece {
     fn new() -> Piece {
         let device_handle = open_device_with_vid_pid(0x0e19, 0x1000).expect("Could not open PIECE device");
+        device_handle.claim_interface(0).unwrap();
         device_handle.write_bulk(0x02, &[0, 32], TIMEOUT).unwrap();
         let mut version = [0; 32];
         device_handle.read_bulk(0x82, &mut version, TIMEOUT).unwrap();
